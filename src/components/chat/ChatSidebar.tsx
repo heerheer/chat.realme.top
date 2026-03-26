@@ -1,3 +1,5 @@
+import { MoreConfigDialog } from "@/components/chat/MoreConfigDialog";
+import { PromptEditorDialog } from "@/components/chat/PromptEditorDialog";
 import { Button } from "@/components/ui/button";
 import { type ApiKeyStats, type ChatSession } from "@/lib/chat-types";
 import { cn } from "@/lib/utils";
@@ -5,8 +7,13 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   CheckCheckIcon,
-  Trash2Icon,
+  Edit3Icon,
+  EllipsisIcon,
+  ShieldQuestionIcon,
+  LightbulbIcon,
+  Settings2Icon,
   PlusIcon,
+  Trash2Icon,
   XCircleIcon,
   XIcon,
 } from "lucide-react";
@@ -15,9 +22,12 @@ import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useState
 interface ChatSidebarProps {
   activeSession: ChatSession | null;
   apiKeyStats: ApiKeyStats | null;
+  globalPrompt: string;
+  onDeleteSession: (sessionId: string) => void;
   onLogoutToAuth: () => void;
   onNewChat: () => void;
-  onDeleteSession: (sessionId: string) => void;
+  onSaveGlobalPrompt: (value: string) => void;
+  onSaveSessionPrompt: (sessionId: string, value: string, includeGlobalPrompt: boolean) => void;
   onSelectSession: (sessionId: string) => void;
   onSidebarOpenChange: (open: boolean) => void;
   sessions: ChatSession[];
@@ -53,20 +63,29 @@ function StatsCard({
 export function ChatSidebar({
   activeSession,
   apiKeyStats,
+  globalPrompt,
+  onDeleteSession,
   onLogoutToAuth,
   onNewChat,
-  onDeleteSession,
+  onSaveGlobalPrompt,
+  onSaveSessionPrompt,
   onSelectSession,
   onSidebarOpenChange,
   sessions,
   sidebarOpen,
 }: ChatSidebarProps) {
   const totalTokens = (apiKeyStats?.inputToken ?? 0) + (apiKeyStats?.outputToken ?? 0);
+  const [globalPromptOpen, setGlobalPromptOpen] = useState(false);
+  const [moreConfigOpen, setMoreConfigOpen] = useState(false);
+  const [sessionPromptOpen, setSessionPromptOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [menuState, setMenuState] = useState<{
     sessionId: string;
     x: number;
     y: number;
   } | null>(null);
+
+  const editingSession = sessions.find((session) => session.id === editingSessionId) || null;
 
   useEffect(() => {
     if (!menuState) {
@@ -105,7 +124,7 @@ export function ChatSidebar({
   return (
     <aside
       className={cn(
-        "fixed flex flex-col inset-y-0 left-0 z-40 w-[86vw] max-w-[320px] border-r bg-card p-4 transition-transform md:sticky md:top-0 md:z-10 md:h-screen md:w-72 md:max-w-none md:shrink-0 md:translate-x-0",
+        "fixed inset-y-0 left-0 z-40 w-[86vw] max-w-[320px] border-r bg-card p-4 transition-transform md:sticky md:top-0 md:z-10 md:h-dvh md:w-72 md:max-w-none md:shrink-0 md:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
@@ -118,7 +137,16 @@ export function ChatSidebar({
 
       <div className="flex">
         <Button className="w-full" onClick={onLogoutToAuth} size="sm" type="button" variant="outline">
-          验证连接
+          <ShieldQuestionIcon className="size-4" />验证API连接
+        </Button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Button className="w-full" onClick={() => setGlobalPromptOpen(true)} size="sm" type="button" variant="outline">
+          <LightbulbIcon className="size-4" />全局提示词
+        </Button>
+        <Button className="w-full" onClick={() => setMoreConfigOpen(true)} size="icon-sm" type="button" variant="outline">
+          <Settings2Icon />设置
         </Button>
       </div>
 
@@ -155,7 +183,7 @@ export function ChatSidebar({
         <p className="mt-2 text-xs text-muted-foreground">累计消耗 Tokens：{formatCount(totalTokens)}</p>
       </div>
 
-      <div className="mt-4 flex  flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-1">
+      <div className="mt-4 flex max-h-[calc(100dvh-500px)] flex-col gap-2 overflow-y-auto pr-1">
         {sessions.map((session) => (
           <button
             className={cn(
@@ -180,14 +208,29 @@ export function ChatSidebar({
 
       {menuState ? (
         <div
-          className="fixed z-50 min-w-36 rounded-xl border border-border bg-popover p-1 shadow-lg"
+          className="fixed z-50 min-w-40 rounded-xl border border-border bg-popover p-1 shadow-lg"
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
           style={{
-            left: Math.min(menuState.x, window.innerWidth - 168),
-            top: Math.min(menuState.y, window.innerHeight - 56),
+            left: Math.min(menuState.x, window.innerWidth - 176),
+            top: Math.min(menuState.y, window.innerHeight - 100),
           }}
         >
+          <button
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+            onClick={() => {
+              if (!menuState) {
+                return;
+              }
+              setEditingSessionId(menuState.sessionId);
+              setSessionPromptOpen(true);
+              setMenuState(null);
+            }}
+            type="button"
+          >
+            <Edit3Icon className="size-4" />
+            编辑会话提示词
+          </button>
           <button
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
             onClick={() => {
@@ -201,6 +244,40 @@ export function ChatSidebar({
           </button>
         </div>
       ) : null}
+
+      <PromptEditorDialog
+        description="该提示词会作为每个会话的默认系统提示词。"
+        onOpenChange={setGlobalPromptOpen}
+        onSave={(value) => onSaveGlobalPrompt(value)}
+        open={globalPromptOpen}
+        showIncludeGlobalPromptOption={false}
+        title="全局提示词"
+        value={globalPrompt}
+      />
+
+      <PromptEditorDialog
+        description="该提示词仅作用于当前会话。"
+        includeGlobalPrompt={editingSession?.includeGlobalPrompt ?? true}
+        onOpenChange={(open) => {
+          setSessionPromptOpen(open);
+          if (!open) {
+            setEditingSessionId(null);
+          }
+        }}
+        onSave={(value, includeGlobalPrompt) => {
+          if (!editingSession) {
+            return;
+          }
+          onSaveSessionPrompt(editingSession.id, value, includeGlobalPrompt ?? true);
+          setEditingSessionId(null);
+        }}
+        open={sessionPromptOpen}
+        showIncludeGlobalPromptOption
+        title="会话提示词"
+        value={editingSession?.sessionPrompt || ""}
+      />
+
+      <MoreConfigDialog onOpenChange={setMoreConfigOpen} open={moreConfigOpen} />
     </aside>
   );
 }

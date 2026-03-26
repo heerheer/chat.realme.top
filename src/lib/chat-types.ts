@@ -32,5 +32,7 @@ export interface ChatSession {
   title: string;
   createdAt: string;
   updatedAt: string;
+  sessionPrompt?: string;
+  includeGlobalPrompt?: boolean;
   messages: ChatMessage[];
 }

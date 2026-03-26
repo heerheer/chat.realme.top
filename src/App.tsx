@@ -7,9 +7,11 @@ import { fetchApiKeyStats, fetchModels, streamResponse } from "@/lib/openai";
 import {
   readActiveSessionId,
   readConfig,
+  readGlobalPrompt,
   readSessions,
   writeActiveSessionId,
   writeConfig,
+  writeGlobalPrompt,
   writeSessions,
 } from "@/lib/storage";
 import { AuthPage } from "@/pages/AuthPage";
@@ -42,8 +44,10 @@ const createSession = (): ChatSession => {
   const createdAt = nowIso();
   return {
     createdAt,
+    includeGlobalPrompt: true,
     id: createId(),
     messages: [],
+    sessionPrompt: "",
     title: NEW_CHAT_TITLE,
     updatedAt: createdAt,
   };
@@ -103,7 +107,10 @@ export function App() {
   const [chatStatus, setChatStatus] = useState<ChatStatus>("ready");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiKeyStats, setApiKeyStats] = useState<ApiKeyStats | null>(null);
+  const [globalPrompt, setGlobalPrompt] = useState(() => readGlobalPrompt());
+  const [defaultPromptLoaded, setDefaultPromptLoaded] = useState(false);
   const streamControllerRef = useRef<AbortController | null>(null);
+
 
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) || sessions[0] || null,
@@ -181,6 +188,11 @@ export function App() {
       writeActiveSessionId(activeSessionId);
     }
   }, [activeSessionId]);
+
+  useEffect(() => {
+    writeGlobalPrompt(globalPrompt);
+  }, [globalPrompt]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -267,6 +279,21 @@ export function App() {
     });
   };
 
+  const handleSaveGlobalPrompt = (value: string) => {
+    setGlobalPrompt(value);
+  };
+
+  const handleSaveSessionPrompt = (sessionId: string, value: string, includeGlobalPrompt: boolean) => {
+    setSessions((prev) =>
+      updateSessionList(prev, sessionId, (session) => ({
+        ...session,
+        includeGlobalPrompt,
+        sessionPrompt: value,
+        updatedAt: nowIso(),
+      }))
+    );
+  };
+
   const stopStreaming = () => {
     streamControllerRef.current?.abort();
   };
@@ -290,6 +317,25 @@ export function App() {
       text: "",
     };
     const nextMessages = [...baseMessages, assistantMessage];
+    const sessionConfig = sessions.find((session) => session.id === sessionId);
+    const promptMessages: ChatMessage[] = [];
+
+    if ((sessionConfig?.includeGlobalPrompt ?? true) && globalPrompt.trim()) {
+      promptMessages.push({
+        id: `system-global-${createId()}`,
+        role: "system",
+        status: "done",
+        text: globalPrompt.trim(),
+      });
+    }
+    if (sessionConfig?.sessionPrompt?.trim()) {
+      promptMessages.push({
+        id: `system-session-${createId()}`,
+        role: "system",
+        status: "done",
+        text: sessionConfig.sessionPrompt.trim(),
+      });
+    }
 
     setSessions((prev) =>
       updateSessionList(prev, sessionId, (session) => ({
@@ -310,7 +356,7 @@ export function App() {
     try {
       await streamResponse({
         config,
-        messages: nextMessages.filter((item) => item.status !== "error"),
+        messages: [...promptMessages, ...nextMessages.filter((item) => item.status !== "error")],
         onDelta: (delta) => {
           setSessions((prev) =>
             updateSessionList(prev, sessionId, (session) => ({
@@ -361,10 +407,10 @@ export function App() {
           messages: session.messages.map((item) =>
             item.id === assistantMessage.id
               ? {
-                  ...item,
-                  status: aborted ? "done" : "error",
-                  text: item.text.trim().length > 0 ? item.text : messageText,
-                }
+                ...item,
+                status: aborted ? "done" : "error",
+                text: item.text.trim().length > 0 ? item.text : messageText,
+              }
               : item
           ),
           updatedAt: nowIso(),
@@ -478,6 +524,7 @@ export function App() {
   return (
     <ChatPage
       activeSession={activeSession}
+      globalPrompt={globalPrompt}
       chatStatus={chatStatus}
       config={config}
       input={input}
@@ -488,6 +535,8 @@ export function App() {
       onInputChange={setInput}
       onLogoutToAuth={handleLogoutToAuth}
       onNewChat={handleNewChat}
+      onSaveGlobalPrompt={handleSaveGlobalPrompt}
+      onSaveSessionPrompt={handleSaveSessionPrompt}
       onEditMessage={handleEditMessage}
       onRetryAssistantMessage={handleRetryAssistantMessage}
       onSelectSession={setActiveSessionId}

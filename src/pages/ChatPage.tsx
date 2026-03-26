@@ -53,6 +53,7 @@ interface ChatPageProps {
   apiKeyStats: ApiKeyStats | null;
   chatStatus: ChatStatus;
   config: ConnectionConfig;
+  globalPrompt: string;
   input: string;
   modelOptions: string[];
   sessions: ChatSession[];
@@ -63,6 +64,8 @@ interface ChatPageProps {
   onDeleteSession: (sessionId: string) => void;
   onLogoutToAuth: () => void;
   onNewChat: () => void;
+  onSaveGlobalPrompt: (value: string) => void;
+  onSaveSessionPrompt: (sessionId: string, value: string, includeGlobalPrompt: boolean) => void;
   onRetryAssistantMessage: (messageId: string) => Promise<void>;
   onSelectSession: (sessionId: string) => void;
   onSendMessage: (message: PromptInputMessage) => Promise<void>;
@@ -84,6 +87,7 @@ export function ChatPage({
   apiKeyStats,
   chatStatus,
   config,
+  globalPrompt,
   input,
   modelOptions,
   sessions,
@@ -94,6 +98,8 @@ export function ChatPage({
   onInputChange,
   onLogoutToAuth,
   onNewChat,
+  onSaveGlobalPrompt,
+  onSaveSessionPrompt,
   onRetryAssistantMessage,
   onSelectSession,
   onSendMessage,
@@ -138,9 +144,12 @@ export function ChatPage({
       <ChatSidebar
         activeSession={activeSession}
         apiKeyStats={apiKeyStats}
+        globalPrompt={globalPrompt}
         onDeleteSession={onDeleteSession}
         onLogoutToAuth={onLogoutToAuth}
         onNewChat={onNewChat}
+        onSaveGlobalPrompt={onSaveGlobalPrompt}
+        onSaveSessionPrompt={onSaveSessionPrompt}
         onSelectSession={onSelectSession}
         onSidebarOpenChange={onSidebarOpenChange}
         sessions={sessions}
