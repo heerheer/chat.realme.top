@@ -8,5 +8,5 @@ main:
           settings:
             target_url: https://github.com/heerheer/chat.realme.top.git
             auth_type: https
-            username: harmog
+            username: heerheer
             password: ${GIT_ACCESS_TOKEN}
