@@ -12,6 +12,13 @@ export interface ConnectionConfig {
   reasoningEffort: ReasoningEffort;
 }
 
+export interface ApiKeyStats {
+  requestSuccess: number;
+  requestFailed: number;
+  inputToken: number;
+  outputToken: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: MessageRole;

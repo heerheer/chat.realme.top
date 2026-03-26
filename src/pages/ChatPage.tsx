@@ -12,12 +12,6 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from "@/components/ai-elements/reasoning";
-import { Shimmer } from "@/components/ai-elements/shimmer";
-import {
   PromptInput,
   PromptInputBody,
   PromptInputFooter,
@@ -31,27 +25,32 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { TypingMessageResponse } from "@/components/chat/TypingMessageResponse";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ChatStatus } from "ai";
 import {
   BotIcon,
-  CheckIcon,
   CopyIcon,
   LightbulbIcon,
   MenuIcon,
   MessageSquareIcon,
   PencilIcon,
-  PlusIcon,
   RotateCcwIcon,
-  XIcon,
 } from "lucide-react";
-import { type ChatMessage, type ChatSession, type ConnectionConfig, type ReasoningEffort } from "@/lib/chat-types";
+import { type ApiKeyStats, type ChatMessage, type ChatSession, type ConnectionConfig, type ReasoningEffort } from "@/lib/chat-types";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface ChatPageProps {
   activeSession: ChatSession | null;
+  apiKeyStats: ApiKeyStats | null;
   chatStatus: ChatStatus;
   config: ConnectionConfig;
   input: string;
@@ -61,6 +60,7 @@ interface ChatPageProps {
   onConfigChange: (next: ConnectionConfig) => void;
   onInputChange: (value: string) => void;
   onEditMessage: (messageId: string, text: string) => Promise<void>;
+  onDeleteSession: (sessionId: string) => void;
   onLogoutToAuth: () => void;
   onNewChat: () => void;
   onRetryAssistantMessage: (messageId: string) => Promise<void>;
@@ -79,70 +79,9 @@ const reasoningOptions: Array<{ label: string; value: ReasoningEffort }> = [
   { label: "超高 · XHigh", value: "xhigh" },
 ];
 
-function StreamingPlaceholder() {
-  return (
-    <div className="flex items-center gap-3 py-1">
-
-      <svg
-        aria-hidden="true"
-        className="h-3 w-12 text-muted-foreground/80"
-        viewBox="0 0 48 12"
-      >
-        <circle cx="6" cy="6" fill="currentColor" r="4">
-          <animate attributeName="opacity" begin="0s" dur="1.1s" repeatCount="indefinite" values="0.25;1;0.25" />
-          <animate attributeName="r" begin="0s" dur="1.1s" repeatCount="indefinite" values="3.2;4.4;3.2" />
-        </circle>
-        <circle cx="24" cy="6" fill="currentColor" r="4">
-          <animate attributeName="opacity" begin="0.18s" dur="1.1s" repeatCount="indefinite" values="0.25;1;0.25" />
-          <animate attributeName="r" begin="0.18s" dur="1.1s" repeatCount="indefinite" values="3.2;4.4;3.2" />
-        </circle>
-        <circle cx="42" cy="6" fill="currentColor" r="4">
-          <animate attributeName="opacity" begin="0.36s" dur="1.1s" repeatCount="indefinite" values="0.25;1;0.25" />
-          <animate attributeName="r" begin="0.36s" dur="1.1s" repeatCount="indefinite" values="3.2;4.4;3.2" />
-        </circle>
-      </svg>
-    </div>
-  );
-}
-
-function TypingMessageResponse({
-  isStreaming,
-  text,
-}: {
-  isStreaming: boolean;
-  text: string;
-}) {
-  const [displayedText, setDisplayedText] = useState(text);
-
-  useEffect(() => {
-    if (text.length < displayedText.length) {
-      setDisplayedText(text);
-      return;
-    }
-
-    if (text === displayedText) {
-      return;
-    }
-
-    const remaining = text.slice(displayedText.length);
-    const chunkSize = remaining.length > 24 ? 4 : remaining.length > 12 ? 3 : 2;
-    const nextText = text.slice(0, displayedText.length + chunkSize);
-    const timer = window.setTimeout(() => {
-      setDisplayedText(nextText);
-    }, 18);
-
-    return () => window.clearTimeout(timer);
-  }, [displayedText, text]);
-
-  if (!text && isStreaming) {
-    return <StreamingPlaceholder />;
-  }
-
-  return <MessageResponse>{displayedText || "空响应。"}</MessageResponse>;
-}
-
 export function ChatPage({
   activeSession,
+  apiKeyStats,
   chatStatus,
   config,
   input,
@@ -150,6 +89,7 @@ export function ChatPage({
   sessions,
   sidebarOpen,
   onConfigChange,
+  onDeleteSession,
   onEditMessage,
   onInputChange,
   onLogoutToAuth,
@@ -195,54 +135,17 @@ export function ChatPage({
         onClick={() => onSidebarOpenChange(false)}
       />
 
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[86vw] max-w-[320px] border-r bg-card p-4 transition-transform md:sticky md:top-0 md:z-10 md:h-dvh md:w-72 md:max-w-none md:shrink-0 md:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-medium text-sm tracking-wide">AI Chat</h1>
-          <Button className="md:hidden" onClick={() => onSidebarOpenChange(false)} size="icon-sm" variant="ghost">
-            <XIcon />
-          </Button>
-        </div>
-
-        <div className="flex">
-          <Button className="w-full" onClick={onLogoutToAuth} size="sm" type="button" variant="outline">
-            验证连接
-          </Button>
-        </div>
-
-        <div className="mt-4">
-          <Button className="w-full" onClick={onNewChat} type="button" variant="secondary">
-            <PlusIcon />
-            新会话
-          </Button>
-        </div>
-
-        <div className="mt-4 flex max-h-[calc(100dvh-250px)] flex-col gap-2 overflow-y-auto pr-1">
-          {sessions.map((session) => (
-            <button
-              className={cn(
-                "rounded-lg border px-3 py-2 text-left transition-colors",
-                session.id === activeSession?.id ? "border-primary/35 bg-primary/10" : "border-border bg-background hover:bg-accent/70"
-              )}
-              key={session.id}
-              onClick={() => {
-                onSelectSession(session.id);
-                onSidebarOpenChange(false);
-              }}
-              type="button"
-            >
-              <p className="truncate text-sm">{session.title}</p>
-              <p className="mt-1 text-muted-foreground text-xs">
-                {new Date(session.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-              </p>
-            </button>
-          ))}
-        </div>
-      </aside>
+      <ChatSidebar
+        activeSession={activeSession}
+        apiKeyStats={apiKeyStats}
+        onDeleteSession={onDeleteSession}
+        onLogoutToAuth={onLogoutToAuth}
+        onNewChat={onNewChat}
+        onSelectSession={onSelectSession}
+        onSidebarOpenChange={onSidebarOpenChange}
+        sessions={sessions}
+        sidebarOpen={sidebarOpen}
+      />
 
       <main className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between border-b bg-background px-3 py-2 sm:px-4">
@@ -252,10 +155,10 @@ export function ChatPage({
             </Button>
             <div className="flex items-center gap-2">
               <BotIcon className="size-4 text-muted-foreground" />
-              <span className="font-medium text-sm">{activeSession?.title || "新会话"}</span>
+              <span className="text-sm font-medium">{activeSession?.title || "新会话"}</span>
             </div>
           </div>
-          <span className="text-muted-foreground text-xs">Light Mode</span>
+          <span className="text-xs text-muted-foreground">Light Mode</span>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -266,7 +169,7 @@ export function ChatPage({
                   <Message from={message.role} key={message.id}>
                     <MessageContent className={message.status === "error" ? "text-destructive" : undefined}>
                       {editingMessageId === message.id ? (
-                        <div className="flex min-w-[280px] flex-col gap-3">
+                        <div className="flex min-w-70 flex-col gap-3">
                           <Textarea
                             className="min-h-24 resize-y bg-background"
                             onChange={(event) => setEditingText(event.currentTarget.value)}
@@ -284,10 +187,7 @@ export function ChatPage({
                       ) : (
                         <>
                           {message.role === "assistant" && message.reasoningText ? (
-                            <Reasoning
-                              className="w-full"
-                              isStreaming={message.status === "streaming"}
-                            >
+                            <Reasoning className="w-full" isStreaming={message.status === "streaming"}>
                               <ReasoningTrigger
                                 getThinkingMessage={(isStreaming, duration) => {
                                   if (isStreaming || duration === 0) {
@@ -404,11 +304,15 @@ export function ChatPage({
                         ))}
                       </PromptInputSelectContent>
                     </PromptInputSelect>
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-xs text-muted-foreground">
                       {chatStatus === "streaming" ? "流式输出中..." : "OpenAI Responses Stream"}
                     </span>
                   </PromptInputTools>
-                  <PromptInputSubmit disabled={chatStatus !== "streaming" && !input.trim()} onStop={onStopStreaming} status={chatStatus} />
+                  <PromptInputSubmit
+                    disabled={chatStatus !== "streaming" && !input.trim()}
+                    onStop={onStopStreaming}
+                    status={chatStatus}
+                  />
                 </PromptInputFooter>
               </PromptInput>
             </div>

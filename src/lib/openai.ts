@@ -1,6 +1,20 @@
-import type { ChatMessage, ConnectionConfig } from "@/lib/chat-types";
+import type { ApiKeyStats, ChatMessage, ConnectionConfig } from "@/lib/chat-types";
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.trim().replace(/\/+$/, "");
+
+const buildStatsUrl = (baseUrl: string) => {
+  const normalized = normalizeBaseUrl(baseUrl);
+
+  if (/\/api\/v\d+$/i.test(normalized)) {
+    return `${normalized}/apikey/stats`;
+  }
+
+  if (/\/v\d+$/i.test(normalized)) {
+    return `${normalized.replace(/\/v\d+$/i, "")}/api/v1/apikey/stats`;
+  }
+
+  return `${normalized}/api/v1/apikey/stats`;
+};
 
 const toReadableError = (status: number, details: string) => {
   if (status === 401 || status === 403) {
@@ -50,6 +64,38 @@ export const fetchModels = async (config: ConnectionConfig): Promise<string[]> =
   }
 
   return ids;
+};
+
+export const fetchApiKeyStats = async (config: ConnectionConfig): Promise<ApiKeyStats> => {
+  const response = await fetch(buildStatsUrl(config.baseUrl), {
+    headers: buildHeaders(config),
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const details = await parseErrorDetails(response);
+    throw new Error(toReadableError(response.status, details));
+  }
+
+  const json = (await response.json()) as {
+    data?: {
+      stats?: {
+        input_token?: number;
+        output_token?: number;
+        request_success?: number;
+        request_failed?: number;
+      };
+    };
+  };
+
+  const stats = json.data?.stats;
+
+  return {
+    inputToken: stats?.input_token ?? 0,
+    outputToken: stats?.output_token ?? 0,
+    requestFailed: stats?.request_failed ?? 0,
+    requestSuccess: stats?.request_success ?? 0,
+  };
 };
 
 const extractCompletedText = (event: unknown): string => {

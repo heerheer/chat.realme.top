@@ -2,8 +2,8 @@ import "./index.css";
 import type { ChatStatus } from "ai";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatMessage, ChatSession, ConnectionConfig, ReasoningEffort } from "@/lib/chat-types";
-import { fetchModels, streamResponse } from "@/lib/openai";
+import type { ApiKeyStats, ChatMessage, ChatSession, ConnectionConfig, ReasoningEffort } from "@/lib/chat-types";
+import { fetchApiKeyStats, fetchModels, streamResponse } from "@/lib/openai";
 import {
   readActiveSessionId,
   readConfig,
@@ -102,6 +102,7 @@ export function App() {
   const [statusText, setStatusText] = useState("请先验证 OPENAI_BASE_URL 与 API Key。");
   const [chatStatus, setChatStatus] = useState<ChatStatus>("ready");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [apiKeyStats, setApiKeyStats] = useState<ApiKeyStats | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
 
   const activeSession = useMemo(
@@ -124,12 +125,25 @@ export function App() {
   };
 
   const validateConnection = async (nextConfig: ConnectionConfig) => {
-    const modelIds = await connectMutation.mutateAsync(nextConfig);
+    const [modelIds, stats] = await Promise.all([
+      connectMutation.mutateAsync(nextConfig),
+      fetchApiKeyStats(nextConfig).catch(() => null),
+    ]);
     const nextModel = modelIds.includes(nextConfig.model) ? nextConfig.model : modelIds[0] || "";
     setModels(modelIds);
+    setApiKeyStats(stats);
     setConfig((prev) => ({ ...prev, ...nextConfig, model: nextModel }));
     setIsAuthorized(true);
     setStatusText(`验证通过，可用模型 ${modelIds.length} 个。`);
+  };
+
+  const refreshApiKeyStats = async (nextConfig: ConnectionConfig) => {
+    try {
+      const stats = await fetchApiKeyStats(nextConfig);
+      setApiKeyStats(stats);
+    } catch {
+      // Stats is supplementary UI data, so keep chat usable if this request fails.
+    }
   };
 
   useEffect(() => {
@@ -231,6 +245,26 @@ export function App() {
     setActiveSessionId(created.id);
     setInput("");
     setSidebarOpen(false);
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    setSessions((prev) => {
+      const nextSessions = prev.filter((session) => session.id !== sessionId);
+
+      if (nextSessions.length === 0) {
+        const created = createSession();
+        setActiveSessionId(created.id);
+        setInput("");
+        return [created];
+      }
+
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(nextSessions[0].id);
+        setInput("");
+      }
+
+      return nextSessions;
+    });
   };
 
   const stopStreaming = () => {
@@ -345,6 +379,7 @@ export function App() {
       }
     } finally {
       streamControllerRef.current = null;
+      void refreshApiKeyStats(config);
       if (!hasFailure) {
         setChatStatus("ready");
       }
@@ -393,8 +428,8 @@ export function App() {
       return;
     }
 
-    const truncated = truncateMessages(activeSession.messages, messageId).map((message) =>
-      message.id === messageId ? { ...message, text: trimmed, status: "done" } : message
+    const truncated: ChatMessage[] = truncateMessages(activeSession.messages, messageId).map((message) =>
+      message.id === messageId ? { ...message, text: trimmed, status: "done" as const } : message
     );
 
     await runConversation(activeSession.id, truncated, trimmed);
@@ -416,6 +451,7 @@ export function App() {
 
   const handleLogoutToAuth = () => {
     setIsAuthorized(false);
+    setApiKeyStats(null);
     setChatStatus("ready");
     setStatusText("请重新验证 API Key。");
     ensureAuthRoute();
@@ -446,7 +482,9 @@ export function App() {
       config={config}
       input={input}
       modelOptions={modelOptions}
+      apiKeyStats={apiKeyStats}
       onConfigChange={setConfig}
+      onDeleteSession={handleDeleteSession}
       onInputChange={setInput}
       onLogoutToAuth={handleLogoutToAuth}
       onNewChat={handleNewChat}
