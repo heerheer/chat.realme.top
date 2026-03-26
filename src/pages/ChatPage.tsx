@@ -43,6 +43,7 @@ import {
   MessageSquareIcon,
   PencilIcon,
   RotateCcwIcon,
+  MessageSquarePlusIcon,
 } from "lucide-react";
 import { type ApiKeyStats, type ChatMessage, type ChatSession, type ConnectionConfig, type ReasoningEffort } from "@/lib/chat-types";
 import { cn } from "@/lib/utils";
@@ -157,7 +158,7 @@ export function ChatPage({
       />
 
       <main className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b bg-background px-3 py-2 sm:px-4">
+        <header className="flex items-center justify-between  bg-zinc-50 px-3 py-2 sm:px-4">
           <div className="flex items-center gap-2">
             <Button className="md:hidden" onClick={() => onSidebarOpenChange(true)} size="icon-sm" variant="ghost">
               <MenuIcon />
@@ -167,7 +168,11 @@ export function ChatPage({
               <span className="text-sm font-medium">{activeSession?.title || "新会话"}</span>
             </div>
           </div>
-          <span className="text-xs text-muted-foreground">Light Mode</span>
+          <Button size="sm" type="button" variant="ghost" title="新建会话" onClick={onNewChat}>
+            <MessageSquarePlusIcon className="size-4" />
+          </Button>
+          {/* 暂时隐藏主题切换 */}
+          {/* <span className="text-xs text-muted-foreground">Light Mode</span> */}
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
