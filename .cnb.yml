@@ -9,4 +9,4 @@ main:
             target_url: https://github.com/heerheer/chat.realme.top.git
             auth_type: https
             username: heerheer
-            password: ${GIT_ACCESS_TOKEN}
+            password: ${GITHUB_ACCESS_TOKEN}
