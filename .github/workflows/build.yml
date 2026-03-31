@@ -25,6 +25,8 @@ jobs:
         run: bun install
 
       - name: Build project
+        env:
+          BUN_PUBLIC_OPENAI_BASE_URL: ${{ vars.BUN_PUBLIC_OPENAI_BASE_URL }}
         run: bun run build
 
       - name: Deploy dist to pages branch
