@@ -18,8 +18,15 @@ import {
   XIcon,
   PanelLeftCloseIcon,
   PanelLeftIcon,
+  ChevronsUpDown,
 } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useState } from "react";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface ChatSidebarProps {
   activeSession: ChatSession | null;
@@ -48,7 +55,7 @@ function StatsCard({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-linear-to-br p-3">
+    <div className="rounded-2xl border border-border/60 bg-white p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="flex gap-0.5 text-[11px] text-muted-foreground">
@@ -133,34 +140,41 @@ export function ChatSidebar({
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-sm font-medium tracking-wide">小赫的AI Chat</h1>
         <Button onClick={() => onSidebarOpenChange(false)} size="icon-sm" variant="ghost" title="收起边栏">
-          <PanelLeftCloseIcon className="size-[18px] text-muted-foreground hover:text-foreground transition-colors" />
+          <PanelLeftCloseIcon className="size-4.5 text-muted-foreground hover:text-foreground transition-colors" />
         </Button>
       </div>
 
-      <div className="flex">
-        <Button className="w-full" onClick={onLogoutToAuth} size="sm" type="button" variant="outline">
-          <ShieldQuestionIcon className="size-4" />验证API连接
-        </Button>
-      </div>
+      <div className="flex bg-secondary flex-col p-2 rounded-lg">
+        <div className="flex">
+          <Button className="w-full" onClick={onLogoutToAuth} size="sm" type="button" variant="outline">
+            <ShieldQuestionIcon className="size-4" />验证API连接
+          </Button>
+        </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <Button className="w-full" onClick={() => setGlobalPromptOpen(true)} size="sm" type="button" variant="outline">
-          <LightbulbIcon className="size-4" />全局提示词
-        </Button>
-        <Button className="w-full" onClick={() => setMoreConfigOpen(true)} size="icon-sm" type="button" variant="outline">
-          <Settings2Icon />设置
-        </Button>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Button className="w-full" onClick={() => setGlobalPromptOpen(true)} size="sm" type="button" variant="outline">
+            <LightbulbIcon className="size-4" />提示词
+          </Button>
+          <Button className="w-full" onClick={() => setMoreConfigOpen(true)} size="icon-sm" type="button" variant="outline">
+            <Settings2Icon />设置
+          </Button>
+        </div>
+
       </div>
 
       <div className="mt-4">
-        <Button className="w-full" onClick={onNewChat} type="button" variant="secondary">
+        <Button className="w-full" onClick={onNewChat} type="button" variant="default">
           <PlusIcon />
           新会话
         </Button>
       </div>
 
-      <div className="mt-4">
-        <div className="grid grid-cols-2 gap-2">
+      <Collapsible className="mt-4 p-2 bg-secondary rounded-lg gap-2">
+        <CollapsibleTrigger className="flex w-full items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">API聚合由 <b>Octopus</b> 支持</span>
+          <ChevronsUpDown className="size-4" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="grid grid-cols-2 gap-2">
           <StatsCard
             icon={<CheckCheckIcon className="size-4" />}
             label="成功请求"
@@ -181,10 +195,10 @@ export function ChatSidebar({
             label="输出 Tokens"
             value={formatCount(apiKeyStats?.outputToken ?? 0)}
           />
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">累计消耗 Tokens：{formatCount(totalTokens)}</p>
-      </div>
+          <p className="mt-2 text-xs text-muted-foreground grid-rows-none col-span-2">累计消耗 Tokens：{formatCount(totalTokens)}</p>
+        </CollapsibleContent>
 
+      </Collapsible>
       <div className="mt-4 flex max-h-[calc(100dvh-500px)] flex-col gap-2 overflow-y-auto pr-1">
         {sessions.map((session) => (
           <button
