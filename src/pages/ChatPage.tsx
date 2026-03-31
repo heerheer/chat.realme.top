@@ -42,6 +42,7 @@ import {
   MenuIcon,
   MessageSquareIcon,
   PencilIcon,
+  PanelLeftIcon,
   RotateCcwIcon,
   MessageSquarePlusIcon,
 } from "lucide-react";
@@ -158,14 +159,22 @@ export function ChatPage({
       />
 
       <main className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between  bg-zinc-50 px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2">
-            <Button className="md:hidden" onClick={() => onSidebarOpenChange(true)} size="icon-sm" variant="ghost">
-              <MenuIcon />
+        <header className="flex shrink-0 items-center justify-between border-b border-border/40 bg-background/80 backdrop-blur-2xl px-4 py-3 z-20">
+          <div className="flex items-center gap-3 transition-all duration-300">
+            <Button
+              className={cn("transition-all duration-300 text-muted-foreground hover:text-foreground", sidebarOpen ? "md:hidden" : "md:flex")}
+              onClick={() => onSidebarOpenChange(true)}
+              size="icon-sm"
+              variant="ghost"
+              title="展开边栏"
+            >
+              <PanelLeftIcon className="size-5" />
             </Button>
-            <div className="flex items-center gap-2">
-              <BotIcon className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{activeSession?.title || "新会话"}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/5 text-primary ring-1 ring-primary/20">
+                <BotIcon className="size-4" />
+              </div>
+              <span className="text-[15px] font-semibold tracking-tight text-foreground/90">{activeSession?.title || "新会话"}</span>
             </div>
           </div>
           <Button size="sm" type="button" variant="ghost" title="新建会话" onClick={onNewChat}>
@@ -263,17 +272,23 @@ export function ChatPage({
                   </Message>
                 ))
               ) : (
-                <ConversationEmptyState
-                  description="输入消息即可开始流式对话。"
-                  icon={<MessageSquareIcon className="size-10" />}
-                  title="开始新的对话"
-                />
+                <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out mt-10 md:mt-20">
+                  <ConversationEmptyState
+                    description="输入您的想法或者指令，开始一段沉浸而高效的智能对话。"
+                    icon={
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] bg-linear-to-br from-primary/20 to-primary/5 border border-primary/10 shadow-inner mb-4">
+                        <MessageSquareIcon className="size-8 text-primary shadow-sm drop-shadow-sm" />
+                      </div>
+                    }
+                    title="准备开始 ✨"
+                  />
+                </div>
               )}
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
 
-          <div className="shrink-0 border-t bg-background px-3 py-3 sm:px-6">
+          <div className="shrink-0  bg-background px-3 py-3 sm:px-6">
             <div className="mx-auto w-full max-w-3xl">
               <PromptInput onSubmit={onSendMessage}>
                 <PromptInputBody>

@@ -16,6 +16,8 @@ import {
   Trash2Icon,
   XCircleIcon,
   XIcon,
+  PanelLeftCloseIcon,
+  PanelLeftIcon,
 } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useState } from "react";
 
@@ -124,14 +126,14 @@ export function ChatSidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 w-[86vw] max-w-[320px] border-r bg-card p-4 transition-transform md:sticky md:top-0 md:z-10 md:h-dvh md:w-72 md:max-w-none md:shrink-0 md:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-40 w-[86vw] max-w-[320px] border-r bg-card p-4 transition-all duration-300 md:sticky md:top-0 md:z-10 md:h-dvh md:w-72 md:max-w-none md:shrink-0",
+        sidebarOpen ? "translate-x-0 md:ml-0" : "-translate-x-full md:-ml-72"
       )}
     >
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-sm font-medium tracking-wide">小赫的AI Chat</h1>
-        <Button className="md:hidden" onClick={() => onSidebarOpenChange(false)} size="icon-sm" variant="ghost">
-          <XIcon />
+        <Button onClick={() => onSidebarOpenChange(false)} size="icon-sm" variant="ghost" title="收起边栏">
+          <PanelLeftCloseIcon className="size-[18px] text-muted-foreground hover:text-foreground transition-colors" />
         </Button>
       </div>
 
