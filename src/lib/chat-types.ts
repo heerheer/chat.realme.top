@@ -6,10 +6,10 @@ export type MessageRole = "user" | "assistant" | "system";
 export type MessageStatus = "streaming" | "done" | "error";
 
 export interface ConnectionConfig {
-  baseUrl: string;
   apiKey: string;
   model: string;
   reasoningEffort: ReasoningEffort;
+  baseUrl: string;
 }
 
 export interface ApiKeyStats {

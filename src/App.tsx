@@ -21,7 +21,7 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 type RoutePath = "/auth" | "/chat";
 
-const FALLBACK_BASE_URL = "https://api.openai.com/v1";
+const FALLBACK_BASE_URL = "https://api.realme.top/v1";
 const DEFAULT_BASE_URL = process.env.BUN_PUBLIC_OPENAI_BASE_URL || FALLBACK_BASE_URL;
 const NEW_CHAT_TITLE = "新会话";
 const DEFAULT_REASONING_EFFORT: ReasoningEffort = "low";
@@ -199,9 +199,8 @@ export function App() {
 
     const runBootstrap = async () => {
       const hasSavedKey = config.apiKey.trim().length > 0;
-      const hasSavedUrl = config.baseUrl.trim().length > 0;
 
-      if (!hasSavedKey || !hasSavedUrl) {
+      if (!hasSavedKey) {
         setIsAuthorized(false);
         ensureAuthRoute(true);
         setBooting(false);
@@ -233,10 +232,7 @@ export function App() {
   }, []);
 
   const handleAuthSubmit = async () => {
-    if (!config.baseUrl.trim()) {
-      setStatusText("请填写 OPENAI_BASE_URL。");
-      return;
-    }
+
     if (!config.apiKey.trim()) {
       setStatusText("请填写 API Key。");
       return;
@@ -303,7 +299,7 @@ export function App() {
     baseMessages: ChatMessage[],
     userText: string
   ) => {
-    if (!config.baseUrl.trim() || !config.apiKey.trim() || !config.model.trim()) {
+    if (!config.apiKey.trim() || !config.model.trim()) {
       setIsAuthorized(false);
       setStatusText("当前连接信息不完整，请先回到验证页重新验证。");
       ensureAuthRoute();
