@@ -1,5 +1,8 @@
 # bun-react-tailwind-shadcn-template
 
+[![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-a855f7?style=flat&logo=bun&logoColor=white)](https://bun.sh)
+[![Tested with Bun](https://img.shields.io/badge/Tested%20with-Bun-4ade80?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
+
 To install dependencies:
 
 ```bash
